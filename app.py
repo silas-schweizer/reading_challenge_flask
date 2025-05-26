@@ -19,6 +19,10 @@ app = Flask(__name__)
 config_name = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(config[config_name])
 
+# Database path - use absolute path to avoid issues in production
+DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reading_challenge.db')
+CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'book_list.csv')
+
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -69,7 +73,7 @@ def logout():
 
 # Database initialization
 def init_db():
-    conn = sqlite3.connect('reading_challenge.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     # Create books table
@@ -128,7 +132,7 @@ def get_cover_image(title, author):
 
 # Load books from CSV into database
 def load_books_from_csv():
-    conn = sqlite3.connect('reading_challenge.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     # Check if books are already loaded
@@ -138,13 +142,30 @@ def load_books_from_csv():
         return
     
     # Check if CSV file exists
-    if not os.path.exists('book_list.csv'):
-        print("Warning: book_list.csv not found. Skipping book import.")
+    if not os.path.exists(CSV_PATH):
+        print(f"Warning: {CSV_PATH} not found. Adding sample books for testing.")
+        # Add some sample books for testing
+        sample_books = [
+            (False, False, "Pride and Prejudice", "Jane Austen", 1813),
+            (False, False, "To Kill a Mockingbird", "Harper Lee", 1960),
+            (False, False, "1984", "George Orwell", 1949),
+            (False, False, "The Great Gatsby", "F. Scott Fitzgerald", 1925),
+            (False, False, "Jane Eyre", "Charlotte Brontë", 1847)
+        ]
+        
+        for i, (s_read, n_read, title, author, year) in enumerate(sample_books):
+            cursor.execute('''
+                INSERT INTO books (title, author, year, s_read, n_read, cover_url, order_index)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (title, author, year, s_read, n_read, None, i))
+        
+        conn.commit()
         conn.close()
+        print("Sample books added successfully")
         return
     
     try:
-        with open('book_list.csv', 'r', encoding='utf-8') as file:
+        with open(CSV_PATH, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)  # Skip header
             
@@ -186,14 +207,60 @@ def load_books_from_csv():
         conn.close()
 
 # Initialize database and load books when app starts (works with both direct run and gunicorn)
-with app.app_context():
-    init_db()
-    load_books_from_csv()
+def initialize_app():
+    """Initialize database and load books with proper error handling"""
+    try:
+        print(f"Initializing database at: {DATABASE_PATH}")
+        print(f"CSV file location: {CSV_PATH}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"App file directory: {os.path.dirname(os.path.abspath(__file__))}")
+        
+        init_db()
+        print("Database tables created successfully")
+        
+        print("Loading books from CSV...")
+        load_books_from_csv()
+        print("App initialization complete")
+        
+        # Verify the database was properly initialized
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM books')
+        book_count = cursor.fetchone()[0]
+        print(f"Database contains {book_count} books")
+        conn.close()
+        
+    except Exception as e:
+        print(f"ERROR during app initialization: {e}")
+        import traceback
+        traceback.print_exc()
+
+# Call initialization
+initialize_app()
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect('reading_challenge.db')
-    cursor = conn.cursor()
+    # Ensure database is initialized
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Test if books table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='books'")
+        if not cursor.fetchone():
+            # Table doesn't exist, try to initialize
+            print("Books table not found, initializing database...")
+            conn.close()
+            initialize_app()
+            conn = sqlite3.connect(DATABASE_PATH)
+            cursor = conn.cursor()
+        
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        # Try to initialize database
+        initialize_app()
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
     
     # Get filter parameters
     filter_by = request.args.get('filter', 'all')
@@ -271,7 +338,7 @@ def index():
 
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
-    conn = sqlite3.connect('reading_challenge.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     # Get book details including cover URL
@@ -307,7 +374,7 @@ def mark_read(book_id, reader):
         flash('Invalid reader', 'error')
         return redirect(url_for('index'))
     
-    conn = sqlite3.connect('reading_challenge.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     column = f'{reader}_read'
@@ -342,7 +409,7 @@ def add_review(book_id):
         flash('Rating must be between 1 and 5', 'error')
         return redirect(url_for('book_detail', book_id=book_id))
     
-    conn = sqlite3.connect('reading_challenge.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     cursor.execute('''
