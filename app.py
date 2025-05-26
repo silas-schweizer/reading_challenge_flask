@@ -137,40 +137,58 @@ def load_books_from_csv():
         conn.close()
         return
     
-    with open('book_list.csv', 'r', encoding='utf-8') as file:
-        csv_reader = csv.reader(file)
-        next(csv_reader)  # Skip header
-        
-        order_index = 0
-        for row in csv_reader:
-            if len(row) >= 4 and row[2]:  # Make sure we have title and author
-                s_read = row[0].strip().lower() == 'x'
-                n_read = row[1].strip().lower() == 'x'
-                title = row[2].strip()
-                author = row[3].strip()
-                
-                # Extract year from title if present and remove brackets
-                year = None
-                if '(' in title and ')' in title:
-                    try:
-                        year_str = title[title.rfind('(') + 1:title.rfind(')')]
-                        year = int(year_str)
-                        title = title[:title.rfind('(')].strip()
-                    except ValueError:
-                        pass
-                
-                # Fetch cover image
-                cover_url = get_cover_image(title, author)
-                
-                cursor.execute('''
-                    INSERT INTO books (title, author, year, s_read, n_read, cover_url, order_index)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (title, author, year, s_read, n_read, cover_url, order_index))
-                
-                order_index += 1
+    # Check if CSV file exists
+    if not os.path.exists('book_list.csv'):
+        print("Warning: book_list.csv not found. Skipping book import.")
+        conn.close()
+        return
     
-    conn.commit()
-    conn.close()
+    try:
+        with open('book_list.csv', 'r', encoding='utf-8') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)  # Skip header
+            
+            order_index = 0
+            for row in csv_reader:
+                if len(row) >= 4 and row[2]:  # Make sure we have title and author
+                    s_read = row[0].strip().lower() == 'x'
+                    n_read = row[1].strip().lower() == 'x'
+                    title = row[2].strip()
+                    author = row[3].strip()
+                    
+                    # Extract year from title if present and remove brackets
+                    year = None
+                    if '(' in title and ')' in title:
+                        try:
+                            year_str = title[title.rfind('(') + 1:title.rfind(')')]
+                            year = int(year_str)
+                            title = title[:title.rfind('(')].strip()
+                        except ValueError:
+                            pass
+                    
+                    # Skip cover image fetching in production for faster startup
+                    cover_url = None
+                    if os.environ.get('FLASK_ENV', 'development') == 'development':
+                        cover_url = get_cover_image(title, author)
+                    
+                    cursor.execute('''
+                        INSERT INTO books (title, author, year, s_read, n_read, cover_url, order_index)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (title, author, year, s_read, n_read, cover_url, order_index))
+                    
+                    order_index += 1
+        
+        conn.commit()
+        print(f"Successfully loaded {order_index} books from CSV")
+    except Exception as e:
+        print(f"Error loading books from CSV: {e}")
+    finally:
+        conn.close()
+
+# Initialize database and load books when app starts (works with both direct run and gunicorn)
+with app.app_context():
+    init_db()
+    load_books_from_csv()
 
 @app.route('/')
 def index():
@@ -339,9 +357,7 @@ def add_review(book_id):
     return redirect(url_for('book_detail', book_id=book_id))
 
 if __name__ == '__main__':
-    init_db()
-    load_books_from_csv()
-    
+    # Database initialization is now handled at app startup above
     # Use environment variables for production deployment
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV', 'development') == 'development'
