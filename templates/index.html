@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Reading Challenge - Home{% endblock %}
+
+{% block content %}
+<!-- Unified Header Box -->
+<div class="unified-header mb-4 p-4 rounded-3 border-0 shadow-lg" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); border: 1px solid rgba(255,255,255,0.1);">
+    <!-- Title Section -->
+    <div class="text-center mb-4">
+        <h1 class="text-white mb-2">
+            <i class="fas fa-trophy text-warning"></i> Classic Literature Reading Challenge
+        </h1>
+        <p class="lead text-light mb-0">Track your progress through the greatest works of literature!</p>
+    </div>
+    
+    <!-- Overall Statistics -->
+    <div class="row text-center mb-4">
+        <div class="col-4">
+            <div class="stat-highlight">
+                <h2 class="text-warning mb-0 fw-bold">{{ stats.total }}</h2>
+                <small class="text-light">Total Books</small>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="stat-highlight">
+                <h2 class="text-success mb-0 fw-bold">{{ stats.s_read + stats.n_read }}</h2>
+                <small class="text-light">Books Read</small>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="stat-highlight">
+                <h2 class="text-info mb-0 fw-bold">{{ stats.total - (stats.s_read + stats.n_read - (stats.s_read if stats.n_read else 0)) }}</h2>
+                <small class="text-light">Remaining</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reader Progress Section -->
+    <div class="row">
+        <div class="col-lg-6 mb-3 mb-lg-0">
+            <div class="reader-section p-3 rounded-2" style="background: rgba(17, 153, 142, 0.2); border: 1px solid rgba(17, 153, 142, 0.3);">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="reader-badge reader-s me-3" style="width: 40px; height: 40px; line-height: 40px; font-size: 18px;">S</div>
+                    <div>
+                        <h5 class="text-white mb-0">Silas</h5>
+                        <small class="text-light">Reading Progress</small>
+                    </div>
+                </div>
+                <div class="row text-center text-white">
+                    <div class="col-6">
+                        <h4 class="mb-0 text-success">{{ stats.s_read }}</h4>
+                        <small class="text-light">Books Read</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="mb-0 text-info">{{ stats.s_percentage }}%</h4>
+                        <small class="text-light">Progress</small>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 8px; background: rgba(255,255,255,0.2);">
+                    <div class="progress-bar" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); width: {{ stats.s_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="reader-section p-3 rounded-2" style="background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.3);">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="reader-badge reader-n me-3" style="width: 40px; height: 40px; line-height: 40px; font-size: 18px;">N</div>
+                    <div>
+                        <h5 class="text-white mb-0">Nadine</h5>
+                        <small class="text-light">Reading Progress</small>
+                    </div>
+                </div>
+                <div class="row text-center text-white">
+                    <div class="col-6">
+                        <h4 class="mb-0 text-success">{{ stats.n_read }}</h4>
+                        <small class="text-light">Books Read</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="mb-0 text-info">{{ stats.n_percentage }}%</h4>
+                        <small class="text-light">Progress</small>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 8px; background: rgba(255,255,255,0.2);">
+                    <div class="progress-bar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: {{ stats.n_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-books text-primary"></i> Book Collection</h2>
+    <div class="d-flex align-items-center gap-3">
+        <!-- Reader Status Filter -->
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="readerFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user-friends"></i>
+                {% if current_filter == 'silas' %}
+                    Silas Only
+                {% elif current_filter == 'nadine' %}
+                    Nadine Only
+                {% elif current_filter == 'both' %}
+                    Both Read
+                {% elif current_filter == 'unread' %}
+                    Unread
+                {% else %}
+                    All Readers
+                {% endif %}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="readerFilterDropdown">
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'all' else '' }}" href="{{ url_for('index', filter='all', century=current_century) }}">
+                    <i class="fas fa-users"></i> All Readers</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'silas' else '' }}" href="{{ url_for('index', filter='silas', century=current_century) }}">
+                    <div class="reader-badge reader-s" style="width: 16px; height: 16px; line-height: 16px; font-size: 10px; display: inline-block; margin-right: 8px;">S</div>
+                    Silas Only</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'nadine' else '' }}" href="{{ url_for('index', filter='nadine', century=current_century) }}">
+                    <div class="reader-badge reader-n" style="width: 16px; height: 16px; line-height: 16px; font-size: 10px; display: inline-block; margin-right: 8px;">N</div>
+                    Nadine Only</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'both' else '' }}" href="{{ url_for('index', filter='both', century=current_century) }}">
+                    <i class="fas fa-heart text-danger"></i> Both Read</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'unread' else '' }}" href="{{ url_for('index', filter='unread', century=current_century) }}">
+                    <i class="fas fa-bookmark text-warning"></i> Unread</a></li>
+            </ul>
+        </div>
+        
+        <!-- Century Filter -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="centuryFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-calendar-alt"></i>
+                {% if current_century == '19th' %}
+                    19th Century
+                {% elif current_century == '20th' %}
+                    20th Century
+                {% elif current_century == '21st' %}
+                    21st Century
+                {% else %}
+                    All Centuries
+                {% endif %}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="centuryFilterDropdown">
+                <li><a class="dropdown-item {{ 'active' if current_century == 'all' else '' }}" href="{{ url_for('index', filter=current_filter, century='all') }}">
+                    <i class="fas fa-globe"></i> All Centuries</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {{ 'active' if current_century == '19th' else '' }}" href="{{ url_for('index', filter=current_filter, century='19th') }}">
+                    <i class="fas fa-scroll"></i> 19th Century (1800-1899)</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_century == '20th' else '' }}" href="{{ url_for('index', filter=current_filter, century='20th') }}">
+                    <i class="fas fa-book"></i> 20th Century (1900-1999)</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_century == '21st' else '' }}" href="{{ url_for('index', filter=current_filter, century='21st') }}">
+                    <i class="fas fa-tablet-alt"></i> 21st Century (2000+)</a></li>
+            </ul>
+        </div>
+        
+        <!-- Reader Legend -->
+        <div class="d-flex align-items-center">
+            <span class="badge bg-light text-dark me-2 border">
+                <div class="reader-badge reader-s" style="width: 20px; height: 20px; line-height: 20px; font-size: 12px;">S</div>
+                Silas
+            </span>
+            <span class="badge bg-light text-dark border">
+                <div class="reader-badge reader-n" style="width: 20px; height: 20px; line-height: 20px; font-size: 12px;">N</div>
+                Nadine
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Results Info -->
+{% if current_filter != 'all' or current_century != 'all' %}
+<div class="alert alert-info d-flex align-items-center mb-4 border-0 shadow-sm">
+    <i class="fas fa-info-circle me-2 text-info"></i>
+    <span>
+        Showing <strong>{{ books|length }}</strong> books
+        {% if current_filter != 'all' %}
+            {% if current_filter == 'silas' %}
+                read by <span class="badge" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">Silas</span>
+            {% elif current_filter == 'nadine' %}
+                read by <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">Nadine</span>
+            {% elif current_filter == 'both' %}
+                read by <span class="badge bg-warning text-dark">both readers</span>
+            {% elif current_filter == 'unread' %}
+                that are <span class="badge bg-secondary text-white">unread</span>
+            {% endif %}
+        {% endif %}
+        {% if current_century != 'all' %}
+            {% if current_filter != 'all' %} and {% endif %}
+            from the <span class="badge bg-secondary">{{ current_century }} century</span>
+        {% endif %}
+    </span>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm ms-auto">
+        <i class="fas fa-times"></i> Clear All Filters
+    </a>
+</div>
+{% endif %}
+
+<div class="row">
+    {% for book in books %}
+    <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+        <div class="card book-card h-100 border-0 shadow-sm hover-lift">
+            {% if book[6] %}
+            <div class="position-relative">
+                <img src="{{ book[6] }}" class="card-img-top" alt="{{ book[1] }} cover" style="height: 240px; object-fit: cover;">
+                <div class="position-absolute top-0 end-0 p-2">
+                    <div class="d-flex flex-column">
+                        <div class="reader-badge {{ 'reader-s' if book[4] else 'reader-unread' }} mb-1" title="{{ 'Read by Silas' if book[4] else 'Not read by Silas' }}">S</div>
+                        <div class="reader-badge {{ 'reader-n' if book[5] else 'reader-unread' }}" title="{{ 'Read by Nadine' if book[5] else 'Not read by Nadine' }}">N</div>
+                    </div>
+                </div>
+                {% if book[4] and book[5] %}
+                <div class="position-absolute bottom-0 start-0 end-0 bg-warning bg-opacity-90 text-dark text-center py-1">
+                    <small><i class="fas fa-heart"></i> Both Read</small>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="card-img-top d-flex align-items-center justify-content-center bg-gradient position-relative" style="height: 240px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                <i class="fas fa-book fa-3x text-muted"></i>
+                <div class="position-absolute top-0 end-0 p-2">
+                    <div class="d-flex flex-column">
+                        <div class="reader-badge {{ 'reader-s' if book[4] else 'reader-unread' }} mb-1">S</div>
+                        <div class="reader-badge {{ 'reader-n' if book[5] else 'reader-unread' }}">N</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+                <h6 class="card-title mb-2 fw-bold">{{ book[1] }}</h6>
+                <p class="card-text text-muted mb-2">
+                    <small><i class="fas fa-user-edit"></i> {{ book[2] }}</small>
+                    {% if book[3] %}
+                        <br><small><i class="fas fa-calendar"></i> {{ book[3] }}</small>
+                    {% endif %}
+                </p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('book_detail', book_id=book[0]) }}" class="btn btn-primary btn-sm w-100 mb-2">
+                        <i class="fas fa-eye"></i> View Details
+                    </a>
+                    {% if book[4] or book[5] %}
+                        <div class="text-center">
+                            {% if book[4] and book[5] %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-heart"></i> Both Completed
+                                </span>
+                            {% elif book[4] %}
+                                <span class="badge" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                                    <i class="fas fa-check"></i> Silas Completed
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <i class="fas fa-check"></i> Nadine Completed
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not books %}
+<div class="text-center mt-5">
+    <i class="fas fa-book fa-3x text-muted mb-3"></i>
+    <h3 class="text-muted">No books found</h3>
+    <p class="text-muted">Make sure your book_list.csv file is properly formatted.</p>
+</div>
+{% endif %}
+{% endblock %}
