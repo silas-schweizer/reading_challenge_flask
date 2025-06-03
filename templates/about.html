@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}About - Reading Challenge{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Hero Section -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 text-primary mb-3">
+                    <i class="fas fa-book-open"></i>
+                    About Reading Challenge
+                </h1>
+                <p class="lead text-muted">A journey through classic literature together</p>
+            </div>
+
+            <!-- Main Content -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-primary mb-3">
+                                <i class="fas fa-heart text-danger"></i>
+                                Our Reading Adventure
+                            </h3>
+                            <p class="card-text">
+                                Welcome to our shared reading challenge! This is where Silas and Nadine track their progress 
+                                through a carefully curated collection of <strong>103 classic literature books</strong>. 
+                                From timeless novels to groundbreaking works that shaped literature, we're exploring the 
+                                greatest stories ever written.
+                            </p>
+                            <p class="card-text">
+                                Whether it's diving into Victorian romance, exploring existential philosophy, or 
+                                discovering forgotten gems, every book read brings us closer to understanding the 
+                                rich tapestry of human storytelling.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-success mb-3">
+                                <i class="fas fa-list-check"></i>
+                                Features
+                            </h4>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Track reading progress for both readers
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Beautiful book covers from Open Library
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Rate and review completed books
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Filter by reader and century
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Progress statistics and percentages
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-info mb-3">
+                                <i class="fas fa-users"></i>
+                                The Readers
+                            </h4>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="reader-badge reader-s me-3" style="width: 40px; height: 40px; line-height: 40px; font-size: 18px;">S</div>
+                                <div>
+                                    <h6 class="mb-0">Silas</h6>
+                                    <small class="text-muted">Literary Explorer</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="reader-badge reader-n me-3" style="width: 40px; height: 40px; line-height: 40px; font-size: 18px;">N</div>
+                                <div>
+                                    <h6 class="mb-0">Nadine</h6>
+                                    <small class="text-muted">Story Enthusiast</small>
+                                </div>
+                            </div>
+                            <p class="text-muted">
+                                Together, we're discovering the classics that have influenced countless readers 
+                                across generations. Each book is a new adventure!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Info -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card shadow-sm border-0 mb-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-secondary mb-3">
+                                <i class="fas fa-code"></i>
+                                Technical Details
+                            </h4>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <p><strong>Platform:</strong> Flask Web Application</p>
+                                    <p><strong>Database:</strong> SQLite</p>
+                                    <p><strong>Cover Images:</strong> Open Library API</p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p><strong>Frontend:</strong> Bootstrap 5</p>
+                                    <p><strong>Authentication:</strong> Flask-Login</p>
+                                    <p><strong>Deployment:</strong> Railway</p>
+                                </div>
+                            </div>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-heart text-danger"></i>
+                                Built with love for literature and the joy of shared reading experiences.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="text-center">
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Book List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

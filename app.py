@@ -475,6 +475,11 @@ def fetch_covers():
     
     return redirect(url_for('index'))
 
+@app.route('/about')
+def about():
+    """About page with information about the reading challenge"""
+    return render_template('about.html')
+
 if __name__ == '__main__':
     # Database initialization is now handled at app startup above
     # Use environment variables for production deployment

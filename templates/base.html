@@ -99,6 +99,9 @@
                 <i class="fas fa-book-open"></i> Reading Challenge
             </a>
             <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('about') }}">
+                    <i class="fas fa-info-circle"></i> About
+                </a>
                 {% if current_user.is_authenticated %}
                     <span class="navbar-text me-3">
                         <div class="reader-badge {{ 'reader-s' if current_user.id == 's' else 'reader-n' }}">
