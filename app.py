@@ -3,6 +3,7 @@ import sqlite3
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_cors import CORS
 from werkzeug.security import check_password_hash
 import os
 import requests
@@ -18,6 +19,9 @@ app = Flask(__name__)
 # Configure app based on environment
 config_name = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(config[config_name])
+
+# Initialize CORS for React frontend
+CORS(app, origins=['http://localhost:3000', 'http://127.0.0.1:3000'], supports_credentials=True)
 
 # Database path - use absolute path to avoid issues in production
 DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reading_challenge.db')
@@ -479,6 +483,317 @@ def fetch_covers():
 def about():
     """About page with information about the reading challenge"""
     return render_template('about.html')
+
+# API Routes for React Frontend
+@app.route('/api/books')
+def api_books():
+    """API endpoint to get all books with optional filtering"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get filter parameters
+        filter_by = request.args.get('filter', 'all')
+        century_filter = request.args.get('century', 'all')
+        
+        # Build base query conditions
+        base_conditions = []
+        
+        # Apply reading status filter
+        if filter_by == 'silas':
+            base_conditions.append('s_read = 1')
+        elif filter_by == 'nadine':
+            base_conditions.append('n_read = 1')
+        elif filter_by == 'both':
+            base_conditions.append('s_read = 1 AND n_read = 1')
+        elif filter_by == 'unread':
+            base_conditions.append('s_read = 0 AND n_read = 0')
+        
+        # Apply century filter
+        if century_filter == '19th':
+            base_conditions.append('year >= 1800 AND year < 1900')
+        elif century_filter == '20th':
+            base_conditions.append('year >= 1900 AND year < 2000')
+        elif century_filter == '21st':
+            base_conditions.append('year >= 2000')
+        
+        # Build final query
+        where_clause = ''
+        if base_conditions:
+            where_clause = 'WHERE ' + ' AND '.join(base_conditions)
+        
+        query = f'''
+            SELECT id, title, author, year, s_read, n_read, cover_url FROM books
+            {where_clause}
+            ORDER BY order_index
+        '''
+        
+        cursor.execute(query)
+        books_data = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        books = []
+        for book in books_data:
+            books.append({
+                'id': book[0],
+                'title': book[1],
+                'author': book[2],
+                'year': book[3],
+                's_read': bool(book[4]),
+                'n_read': bool(book[5]),
+                'cover_url': book[6]
+            })
+        
+        conn.close()
+        return jsonify({'books': books})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/book/<int:book_id>')
+def api_book_detail(book_id):
+    """API endpoint to get book details with reviews"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get book details
+        cursor.execute('''
+            SELECT id, title, author, year, s_read, n_read, cover_url FROM books WHERE id = ?
+        ''', (book_id,))
+        book_data = cursor.fetchone()
+        
+        if not book_data:
+            return jsonify({'error': 'Book not found'}), 404
+        
+        # Get reviews for this book
+        cursor.execute('''
+            SELECT reader, rating, review, date_added FROM reviews 
+            WHERE book_id = ? ORDER BY date_added DESC
+        ''', (book_id,))
+        reviews_data = cursor.fetchall()
+        
+        # Format book data
+        book = {
+            'id': book_data[0],
+            'title': book_data[1],
+            'author': book_data[2],
+            'year': book_data[3],
+            's_read': bool(book_data[4]),
+            'n_read': bool(book_data[5]),
+            'cover_url': book_data[6]
+        }
+        
+        # Format reviews data
+        reviews = []
+        for review in reviews_data:
+            reviews.append({
+                'reader': review[0],
+                'rating': review[1],
+                'review': review[2],
+                'date_added': review[3]
+            })
+        
+        conn.close()
+        return jsonify({'book': book, 'reviews': reviews})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats')
+def api_stats():
+    """API endpoint to get reading statistics"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get reading statistics
+        cursor.execute('SELECT COUNT(*) FROM books WHERE s_read = 1')
+        s_read_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books WHERE n_read = 1')
+        n_read_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books')
+        total_books = cursor.fetchone()[0]
+        
+        # Get century statistics
+        cursor.execute('SELECT COUNT(*) FROM books WHERE year >= 1800 AND year < 1900')
+        books_19th = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books WHERE year >= 1900 AND year < 2000')
+        books_20th = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books WHERE year >= 2000')
+        books_21st = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        stats = {
+            's_read': s_read_count,
+            'n_read': n_read_count,
+            'total': total_books,
+            's_percentage': round((s_read_count / total_books * 100), 1) if total_books > 0 else 0,
+            'n_percentage': round((n_read_count / total_books * 100), 1) if total_books > 0 else 0,
+            'books_19th': books_19th,
+            'books_20th': books_20th,
+            'books_21st': books_21st
+        }
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    """API endpoint for user authentication"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').lower()
+        password = data.get('password', '')
+        
+        # Validate credentials
+        valid_user = False
+        if username == 's':
+            valid_user = check_password_hash(app.config['SILAS_PASSWORD_HASH'], password)
+        elif username == 'n':
+            valid_user = check_password_hash(app.config['NADINE_PASSWORD_HASH'], password)
+        
+        if valid_user:
+            user = User(username)
+            login_user(user)
+            name = 'Silas' if username == 's' else 'Nadine'
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': username,
+                    'name': name
+                },
+                'message': f'Welcome back, {name}! Happy reading! 📚'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid credentials'
+            }), 401
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/logout', methods=['POST'])
+@login_required
+def api_logout():
+    """API endpoint for user logout"""
+    try:
+        logout_user()
+        return jsonify({
+            'success': True,
+            'message': 'You have been logged out'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/user')
+def api_current_user():
+    """API endpoint to get current user info"""
+    if current_user.is_authenticated:
+        name = 'Silas' if current_user.id == 's' else 'Nadine'
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'id': current_user.id,
+                'name': name
+            }
+        })
+    else:
+        return jsonify({'authenticated': False})
+
+@app.route('/api/mark_read/<int:book_id>/<reader>', methods=['POST'])
+@login_required
+def api_mark_read(book_id, reader):
+    """API endpoint to mark a book as read"""
+    try:
+        # Check if user can only mark their own books
+        if current_user.id != reader:
+            return jsonify({
+                'success': False,
+                'error': 'You can only mark your own books as read'
+            }), 403
+        
+        if reader not in ['s', 'n']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid reader'
+            }), 400
+        
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        column = f'{reader}_read'
+        cursor.execute(f'UPDATE books SET {column} = 1 WHERE id = ?', (book_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Book marked as read by {reader.upper()}!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/add_review/<int:book_id>', methods=['POST'])
+@login_required
+def api_add_review(book_id):
+    """API endpoint to add a book review"""
+    try:
+        data = request.get_json()
+        reader = data.get('reader')
+        rating = data.get('rating')
+        review_text = data.get('review', '')
+        
+        # Check if user can only add reviews for themselves
+        if current_user.id != reader:
+            return jsonify({
+                'success': False,
+                'error': 'You can only add reviews for yourself'
+            }), 403
+        
+        if not reader or not rating:
+            return jsonify({
+                'success': False,
+                'error': 'Reader and rating are required'
+            }), 400
+        
+        try:
+            rating = int(rating)
+            if rating < 1 or rating > 5:
+                raise ValueError
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Rating must be between 1 and 5'
+            }), 400
+        
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO reviews (book_id, reader, rating, review)
+            VALUES (?, ?, ?, ?)
+        ''', (book_id, reader, rating, review_text))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Review added successfully!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Database initialization is now handled at app startup above
