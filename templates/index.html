@@ -151,6 +151,15 @@
             </ul>
         </div>
         
+        <!-- Admin Actions (only for logged-in users) -->
+        {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('fetch_covers') }}" style="display: inline;">
+            <button type="submit" class="btn btn-outline-success btn-sm" title="Fetch missing book covers" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Fetching...'; this.disabled=true;">
+                <i class="fas fa-image"></i> Fetch Covers
+            </button>
+        </form>
+        {% endif %}
+        
         <!-- Reader Legend -->
         <div class="d-flex align-items-center">
             <span class="badge bg-light text-dark me-2 border">

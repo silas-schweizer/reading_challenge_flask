@@ -109,13 +109,24 @@ def init_db():
 # Function to fetch cover image from Open Library API
 def get_cover_image(title, author):
     try:
-        # Clean title for API search
+        import urllib.parse
+        
+        # Clean title and author for API search
         clean_title = re.sub(r'[^\w\s]', '', title).strip()
         clean_author = re.sub(r'[^\w\s]', '', author).strip()
         
-        # Search Open Library API
-        search_url = f"http://openlibrary.org/search.json?title={clean_title}&author={clean_author}&limit=1"
-        response = requests.get(search_url, timeout=5)
+        # URL encode the parameters
+        encoded_title = urllib.parse.quote(clean_title)
+        encoded_author = urllib.parse.quote(clean_author)
+        
+        # Search Open Library API (use HTTPS)
+        search_url = f"https://openlibrary.org/search.json?title={encoded_title}&author={encoded_author}&limit=1"
+        
+        headers = {
+            'User-Agent': 'ReadingChallenge/1.0 (https://github.com/reading-challenge)'
+        }
+        
+        response = requests.get(search_url, headers=headers, timeout=15)
         
         if response.status_code == 200:
             data = response.json()
@@ -123,10 +134,19 @@ def get_cover_image(title, author):
                 book = data['docs'][0]
                 if 'cover_i' in book:
                     cover_id = book['cover_i']
-                    cover_url = f"http://covers.openlibrary.org/b/id/{cover_id}-L.jpg"  # Use -L for large size
+                    # Use HTTPS for cover images
+                    cover_url = f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+                    print(f"Found cover for '{title}' by {author}: {cover_url}")
                     return cover_url
+                else:
+                    print(f"No cover found for '{title}' by {author}")
+            else:
+                print(f"No search results for '{title}' by {author}")
+        else:
+            print(f"API request failed for '{title}' by {author}: Status {response.status_code}")
+            
     except Exception as e:
-        print(f"Error fetching cover for {title}: {e}")
+        print(f"Error fetching cover for '{title}' by {author}: {e}")
     
     return None
 
@@ -187,10 +207,8 @@ def load_books_from_csv():
                         except ValueError:
                             pass
                     
-                    # Skip cover image fetching in production for faster startup
-                    cover_url = None
-                    if os.environ.get('FLASK_ENV', 'development') == 'development':
-                        cover_url = get_cover_image(title, author)
+                    # Fetch cover image (enabled for both development and production)
+                    cover_url = get_cover_image(title, author)
                     
                     cursor.execute('''
                         INSERT INTO books (title, author, year, s_read, n_read, cover_url, order_index)
@@ -422,6 +440,40 @@ def add_review(book_id):
     
     flash('Review added successfully!', 'success')
     return redirect(url_for('book_detail', book_id=book_id))
+
+@app.route('/fetch_covers', methods=['POST'])
+@login_required
+def fetch_covers():
+    """Fetch missing cover images for books that don't have them"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get books without cover images
+        cursor.execute('SELECT id, title, author FROM books WHERE cover_url IS NULL OR cover_url = ""')
+        books_without_covers = cursor.fetchall()
+        
+        updated_count = 0
+        for book_id, title, author in books_without_covers:
+            cover_url = get_cover_image(title, author)
+            if cover_url:
+                cursor.execute('UPDATE books SET cover_url = ? WHERE id = ?', (cover_url, book_id))
+                updated_count += 1
+                print(f"Updated cover for: {title} by {author}")
+        
+        conn.commit()
+        conn.close()
+        
+        if updated_count > 0:
+            flash(f'Successfully fetched {updated_count} book covers!', 'success')
+        else:
+            flash('No new covers found. All books may already have covers or the API might be unavailable.', 'info')
+            
+    except Exception as e:
+        print(f"Error fetching covers: {e}")
+        flash('Error fetching covers. Please try again later.', 'error')
+    
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     # Database initialization is now handled at app startup above
