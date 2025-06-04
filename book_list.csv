@@ -1,4 +1,4 @@
-S,N,Titel,Autor:in
+S,N,title,author
 x,,War and Peace (1869),Leo Tolstoy
 x,,The Brothers Karamazov (1880),Feodor Dostoevsky
 x,x,Madame Bovary (1857),Gustave Flaubert
@@ -41,7 +41,7 @@ x,,Pan (1894),Knut Hamsun
  ,,The Scarlet Letter (1850),Nathaniel Hawthorne
  ,,Bouvard and Pécuchet (1881),Gustave Flaubert
  ,,The Picture of Dorian Gray (1890),Oscar Wilde
- ,x,Jane Eyre (1847),Charlotte Brontë
+x,x,Jane Eyre (1847),Charlotte Brontë
  ,,Washington Square (1880),Henry James
  ,,The Betrothed (1827),Alessandro Manzoni
 x,,A Tale of Two Cities (1859),Charles Dickens
@@ -99,3 +99,202 @@ x,x,Twenty Thousand Leagues Under the Sea (1870),Jules Verne
  ,,Adolphe (1816),Benjamin Constant
  ,,Stopfkuchen (1891),Wilhelm Raabe
  ,,Indiana (1832),George Sand
+x,x,The Great Gatsby,F. Scott Fitzgerald
+,,Ulysses,James Joyce
+,,In Search of Lost Time,Marcel Proust
+,x,One Hundred Years of Solitude,Gabriel García Márquez
+x,x,The Catcher in the Rye,J. D. Salinger
+,x,Lolita,Vladimir Nabokov
+x,x,Nineteen Eighty Four,George Orwell
+x,,To Kill a Mockingbird,Harper Lee
+x,,The Lord of the Rings,J. R.	R.	Tolkien
+,x,The Stranger,Albert Camus
+,,The Sound and the Fury,William Faulkner
+,,The Grapes of Wrath,John Steinbeck
+,,To the Lighthouse,Virginia Woolf
+x,,The Trial,Franz Kafka
+,,Catch-22,Joseph Heller
+,,The Magic Mountain,Thomas Mann
+,,Mrs. Dalloway,Virginia Woolf
+,,Invisible Man,Ralph Ellison
+x,,The Master and Margarita,Mikhail Bulgakov
+,,Midnight's Children,Salman Rushdie
+x,x,The Little Prince,Antoine de Saint-Exupéry
+,,On the Road,Jack Kerouac
+,,"Absalom, Absalom!",William Faulkner
+,,Beloved,Toni Morrison
+,,Fictions,Jorge Luis Borges
+,,Journey to the End of The Night,Louis-Ferdinand Céline
+x,,The Sun Also Rises,Ernest Hemingway
+x,x,Brave New World,Aldous Huxley
+,,Things Fall Apart,Chinua Achebe
+,,Their Eyes Were Watching God,Zora Neale Hurston
+,,Slaughterhouse-Five,Kurt Vonnegut
+x,,The Old Man and the Sea,Ernest Hemingway
+x,,A Passage to India,E. M. Forster
+x,,Gone With the Wind,Margaret Mitchell
+,,Rebecca,Daphne du Maurier
+,x,Lord of the Flies,William Golding
+x,x,Animal Farm,George Orwell
+x,,The Stories of Anton Chekhov,Anton Chekhov
+,,The Good Soldier,Ford Madox Ford
+,,The Leopard,Giuseppe Tomasi di Lampedusa
+,x,Dune,Frank Herbert
+x,x,The Metamorphosis,Franz Kafka
+,,A Portrait of the Artist as a Young Man,James Joyce
+,,Orlando,Virginia Woolf
+,,The Golden Notebook,Doris May Lessing
+,,The Long Goodbye,Raymond Chandler
+x,,All Quiet on the Western Front,Erich Maria Remarque
+,,The Age of Innocence,Edith Wharton
+,,Charlotte's Web,E. B. White
+x,x,The Handmaid's Tale,Margaret Atwood
+,,The Castle,Franz Kafka
+,,As I Lay Dying,William Faulkner
+,,Buddenbrooks,Thomas Mann
+,,The Complete Tales and Poems of Edgar Allan Poe,Edgar Allan Poe
+x,,For Whom the Bell Tolls,Ernest Hemingway
+,,Pale Fire,Vladimir Nabokov
+x,,The Tin Drum,Günter Grass
+,,Under the Volcano,Malcolm Lowry
+,,Native Son,Richard Wright
+,,Waiting for Godot,Samuel Beckett
+x,x,The Bell Jar,Sylvia Plath
+,,The Color Purple,Alice Walker
+,x,The Wind in the Willows,Kenneth Grahame
+,,A Clockwork Orange,Anthony Burgess
+,,Doctor Faustus,Thomas Mann
+x,,Fahrenheit 451,Ray Bradbury
+,,The Man Without Qualities,Robert Musil
+,,The Maltese Falcon,Dashiell Hammett
+,,The Talented Mr. Ripley,Patricia Highsmith
+,,The Plague,Albert Camus
+,,The Hound of the Baskervilles,Arthur Conan Doyle
+,,The Big Sleep,Raymond Chandler
+,x,The Hitchhiker's Guide to the Galaxy,Douglas Adams
+,,Lord Jim,Joseph Conrad
+,,Howards End,E. M. Forster
+x,x,The Unbearable Lightness of Being,Milan Kundera
+,,Wide Sargasso Sea,Jean Rhys
+,,One Day in the Life of Ivan Denisovich,Aleksandr Solzhenitsyn
+x,,Steppenwolf,Hermann Hesse
+,,The Name of the Rose,Umberto Eco
+,,Memoirs of Hadrian,Marguerite Yourcenar
+,,Pedro Páramo,Juan Rulfo
+x,,Doctor Zhivago,Boris Pasternak
+x,,A Farewell to Arms,Ernest Hemingway
+,,Love in the Time of Cholera,Gabriel García Márquez
+,,Sons and Lovers,D. H. Lawrence
+,,One Flew Over the Cuckoo's Nest,Ken Kesey
+,,The Heart Is A Lonely Hunter,Carson McCullers
+,,Tender Is the Night,F. Scott Fitzgerald
+,x,A Wrinkle In Time,Madeleine L'Engle
+,,"Rabbit, Run",John Updike
+,x,Winnie the Pooh,A. A. Milne
+,,Brideshead Revisited,Evelyn Waugh
+,,My Antonia,Willa Cather
+,,The Good Soldier Svejk,Jaroslav Hašek
+,x,And Then There Were None,Agatha Christie
+,,Portnoy's Complaint,Philip Roth
+,,The Waste Land,T. S. Eliot
+,,The Prime of Miss Jean Brodie,Muriel Spark
+,,Confessions of Zeno,Italo Svevo
+x,x,All the Light We Cannot See,Anthony Doerr
+,,A Gentleman in Moscow,Amor Towles
+,,The Goldfinch,Donna Tartt
+x,,Pachinko,Min Jin Lee
+,,Educated,Tara Westover
+x,x,"Tomorrow, and Tomorrow, and Tomorrow",Gabrielle Zevin
+,x,My Brilliant Friend,Elena Ferrante
+x,,Never Let Me Go,Kazuo Ishiguro
+,,Station Eleven,Emily St. John Mandel
+x,x,A Little Life,Hanya Yanagihara
+,,The Overstory,Richard Powers
+x,,The Underground Railroad,Colson Whitehead
+,,Wolf Hall,Hilary Mantel
+,,The Road,Cormac McCarthy
+,,Lincoln in the Bardo,George Saunders
+x,x,Atonement,Ian McEwan
+x,,Middlesex,Jeffrey Eugenides
+,,Americanah,Chimamanda Ngozi Adichie
+,,The Amazing Adventures of Kavalier & Clay,Michael Chabon
+,,Homegoing,Yaa Gyasi
+,,Hamnet,Maggie O'Farrell
+,,The Warmth of Other Suns,Isabel Wilkerson
+,,Bel Canto,Ann Patchett
+,,Gilead,Marilynne Robinson
+x,,The Corrections,Jonathan Franzen
+x,x,Normal People,Sally Rooney
+,,Cutting for Stone,Abraham Verghese
+,,Say Nothing,Patrick Radden Keefe
+,,A Visit From the Goon Squad,Jennifer Egan
+,,Circe,Madeline Miller
+,,Cloud Cuckoo Land,Anthony Doerr
+x,x,The Book Thief,Markus Zusak
+x,,Cloud Atlas,David Mitchell
+,x,The Covenant of Water,Abraham Verghese
+,,The Year of Magical Thinking,Joan Didion
+x,,The Nickel Boys,Colson Whitehead
+,,The Great Believers,Rebecca Makkai
+,,Olive Kitteridge,Elizabeth Strout
+,x,The Kite Runner,Khaled Hosseini
+,,Life After Life,Kate Atkinson
+,,The Brief Wondrous Life of Oscar Wao,Junot Díaz
+,,Between the World and Me,Ta-Nehisi Coates
+,,The Heaven & Earth Grocery Store,James McBride
+,x,There There,Tommy Orange
+,x,The Song of Achilles,Madeline Miller
+x,x,Lessons in Chemistry,Bonnie Garmus
+x,x,On Earth We're Briefly Gorgeous,Ocean Vuong
+,,Gone Girl,Gillian Flynn
+,,James,Percival Everett
+,,Caste,Isabel Wilkerson
+,x,The Nightingale,Kristin Hannah
+,,Trust,Hernan Diaz
+,,11/22/63,Stephen King
+,,Braiding Sweetgrass,Robin Wall Kimmerer
+x,x,The Hunger Games,Suzanne Collins
+,x,Small Things Like These,Claire Keegan
+x,,White Teeth,Zadie Smith
+,x,Where the Crawdads Sing,Delia Owens
+x,x,The Dutch House,Ann Patchett
+,,North Woods,Daniel Mason
+,,The Sympathizer,Viet Thanh Nguyen
+,,The Fifth Season,N.K. Jemisin
+,,2666,Roberto Bolaño
+,,Evicted,Matthew Desmond
+,,Just Kids,Patti Smith
+,,Piranesi,Susanna Clarke
+,,The Devil in the White City,Erik Larson
+,,Killers of the Flower Moon,David Grann
+,,Know My Name,Chanel Miller
+,,"Sing, Unburied, Sing",Jesmyn Ward
+x,x,Crying in H Mart,Michelle Zauner
+,x,Harry Potter and the Deathly Hallows,J.K. Rowling
+x,x,Klara and the Sun,Kazuo Ishiguro
+,,The Lincoln Highway,Amor Towles
+,,Just Mercy,Bryan Stevenson
+x,,Sapiens,Yuval Noah Harari
+x,,Kafka on the Shore,Haruki Murakami
+,x,1Q84,Haruki Murakami
+,,Deacon King Kong,James McBride
+,,The Immortal Life of Henrietta Lacks,Rebecca Skloot
+,x,Tom Lake,Ann Patchett
+,,Let the Great World Spin,Colum McCann
+,,Tenth of December,George Saunders
+,,When Breath Becomes Air,Paul Kalanithi
+,,Life of Pi,Yann Martel
+,x,"Girl, Women, Other",Bernardine Evaristo
+,,The Plot Against America,Philip Roth
+,,The Glass Castle,Jeannette Walls
+,,In the Dream House,Carmen Maria Machado
+x,x,Project Hail Mary,Andy Weir
+,,Drive Your Plow Over the Bones of the Dead,Olga Tokarczuk
+,,Remarkably Bright Creatures,Shelby Van Pelt
+,,The Bee Sting,Paul Murray
+,x,A Thousand Splendid Suns,Khaled Hosseini
+,x,The Vanishing Half,Brit Bennett
+x,x,My Year of Rest and Relaxation,Ottessa Moshfegh
+x,x,Shuggie Bain,Douglas Stuart
+,,Empire of Pain,Patrick Radden Keefe
+x,x,A Man Called Ove,Fredrik Backman
