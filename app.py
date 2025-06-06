@@ -9,11 +9,12 @@ import requests
 import re
 from dotenv import load_dotenv
 from config import config
+from local_covers import LocalCoverManager
 
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, static_folder=None)
+app = Flask(__name__, static_folder='static')
 
 # Configure app based on environment
 config_name = os.environ.get('FLASK_ENV', 'development')
@@ -31,6 +32,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to mark books as read or add reviews.'
+
+# Initialize Local Cover Manager
+cover_manager = LocalCoverManager()
 
 # User class for Flask-Login
 class User(UserMixin):
@@ -109,49 +113,38 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Function to fetch cover image from Open Library API
-def get_cover_image(title, author):
+# Function to get cover image using local cover management
+def get_cover_image(title, author, book_id=None):
+    """Get cover URL using local cover management system"""
     try:
-        import urllib.parse
-        
-        # Clean title and author for API search
-        clean_title = re.sub(r'[^\w\s]', '', title).strip()
-        clean_author = re.sub(r'[^\w\s]', '', author).strip()
-        
-        # URL encode the parameters
-        encoded_title = urllib.parse.quote(clean_title)
-        encoded_author = urllib.parse.quote(clean_author)
-        
-        # Search Open Library API (use HTTPS)
-        search_url = f"https://openlibrary.org/search.json?title={encoded_title}&author={encoded_author}&limit=1"
-        
-        headers = {
-            'User-Agent': 'ReadingChallenge/1.0 (https://github.com/reading-challenge)'
-        }
-        
-        response = requests.get(search_url, headers=headers, timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('docs') and len(data['docs']) > 0:
-                book = data['docs'][0]
-                if 'cover_i' in book:
-                    cover_id = book['cover_i']
-                    # Use HTTPS for cover images
-                    cover_url = f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
-                    print(f"Found cover for '{title}' by {author}: {cover_url}")
-                    return cover_url
-                else:
-                    print(f"No cover found for '{title}' by {author}")
+        # If we have a book_id, use it; otherwise try to find it in the database
+        if book_id is None:
+            conn = sqlite3.connect(DATABASE_PATH)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM books WHERE title = ? AND author = ?', (title, author))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                book_id = result[0]
             else:
-                print(f"No search results for '{title}' by {author}")
+                print(f"⚠️  No book found in database for '{title}' by {author}")
+                return None
+        
+        # Get cover URL from local cover manager
+        cover_url = cover_manager.get_cover_url(book_id, title, author)
+        
+        # If it's the default cover URL, we don't have a specific cover
+        if cover_url == '/static/covers/default_book_cover.jpg':
+            print(f"  ℹ️  Using default cover for '{title}' by {author}")
         else:
-            print(f"API request failed for '{title}' by {author}: Status {response.status_code}")
+            print(f"  ✓ Found local cover for '{title}' by {author}: {cover_url}")
+        
+        return cover_url
             
     except Exception as e:
-        print(f"Error fetching cover for '{title}' by {author}: {e}")
-    
-    return None
+        print(f"  ✗ Error getting cover for '{title}' by {author}: {e}")
+        return None
 
 # Load books from CSV into database
 def load_books_from_csv():
@@ -210,13 +203,11 @@ def load_books_from_csv():
                         except ValueError:
                             pass
                     
-                    # Fetch cover image (enabled for both development and production)
-                    cover_url = get_cover_image(title, author)
-                    
+                    # Insert book without cover initially - covers will be managed locally
                     cursor.execute('''
                         INSERT INTO books (title, author, year, s_read, n_read, cover_url, order_index)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (title, author, year, s_read, n_read, cover_url, order_index))
+                    ''', (title, author, year, s_read, n_read, None, order_index))
                     
                     order_index += 1
         
@@ -447,67 +438,66 @@ def add_review(book_id):
 @app.route('/fetch_covers', methods=['POST'])
 @login_required
 def fetch_covers():
-    """Fetch missing cover images for books that don't have them"""
+    """Update database with local cover URLs and show statistics"""
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        # Update database with local cover URLs
+        updated_count = cover_manager.update_database_covers()
         
-        # Get books without cover images
-        cursor.execute('SELECT id, title, author FROM books WHERE cover_url IS NULL OR cover_url = ""')
-        books_without_covers = cursor.fetchall()
-        
-        updated_count = 0
-        for book_id, title, author in books_without_covers:
-            cover_url = get_cover_image(title, author)
-            if cover_url:
-                cursor.execute('UPDATE books SET cover_url = ? WHERE id = ?', (cover_url, book_id))
-                updated_count += 1
-                print(f"Updated cover for: {title} by {author}")
-        
-        conn.commit()
-        conn.close()
+        # Get statistics
+        stats = cover_manager.get_statistics()
         
         if updated_count > 0:
-            flash(f'Successfully fetched {updated_count} book covers!', 'success')
+            flash(f'Successfully updated {updated_count} book cover URLs! Database now has {stats["books_with_covers"]} books with covers.', 'success')
         else:
-            flash('No new covers found. All books may already have covers or the API might be unavailable.', 'info')
+            flash(f'All books already have cover URLs assigned. {stats["books_with_covers"]} books have covers, {stats["books_without_covers"]} use default cover.', 'info')
             
     except Exception as e:
-        print(f"Error fetching covers: {e}")
-        flash('Error fetching covers. Please try again later.', 'error')
+        print(f"Error updating covers: {e}")
+        flash('Error updating covers. Please try again later.', 'error')
     
     return redirect(url_for('index'))
 
 @app.route('/test_fetch_covers', methods=['POST', 'GET'])
 def test_fetch_covers():
-    """Test endpoint to fetch missing cover images for books without authentication"""
+    """Test endpoint to show local cover management statistics and update database"""
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
+        # Update database with local cover URLs
+        updated_count = cover_manager.update_database_covers()
         
-        # Get first 10 books without cover images
-        cursor.execute('SELECT id, title, author FROM books WHERE cover_url IS NULL OR cover_url = "" LIMIT 10')
-        books_without_covers = cursor.fetchall()
+        # Get comprehensive statistics
+        stats = cover_manager.get_statistics()
         
-        updated_count = 0
-        for book_id, title, author in books_without_covers:
-            cover_url = get_cover_image(title, author)
-            if cover_url:
-                cursor.execute('UPDATE books SET cover_url = ? WHERE id = ?', (cover_url, book_id))
-                updated_count += 1
-                print(f"Updated cover for: {title} by {author}")
+        # Get list of books without covers for debugging
+        books_without_covers = cover_manager.list_books_without_covers()
         
-        conn.commit()
-        conn.close()
+        print(f"📊 COVER STATISTICS:")
+        print(f"   Total books: {stats['total_books']}")
+        print(f"   Books with covers: {stats['books_with_covers']}")
+        print(f"   Books without covers: {stats['books_without_covers']}")
+        print(f"   Cover files on disk: {stats['cover_files']}")
+        print(f"   Cover mappings: {stats['mappings']}")
+        print(f"   Database updates: {updated_count}")
+        
+        if books_without_covers:
+            print(f"\n📚 First 10 books without covers:")
+            for i, (book_id, title, author) in enumerate(books_without_covers[:10]):
+                print(f"   {i+1}. {title} by {author} (ID: {book_id})")
         
         return jsonify({
             'success': True,
             'updated_count': updated_count,
-            'message': f'Successfully fetched {updated_count} book covers!'
+            'statistics': stats,
+            'books_without_covers_sample': [
+                {'id': book_id, 'title': title, 'author': author} 
+                for book_id, title, author in books_without_covers[:10]
+            ],
+            'message': f'Local cover management working! Updated {updated_count} database entries. {stats["books_with_covers"]} books have covers.'
         })
             
     except Exception as e:
-        print(f"Error fetching covers: {e}")
+        print(f"💥 ERROR in test_fetch_covers: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
