@@ -277,6 +277,7 @@ def index():
     # Get filter parameters
     filter_by = request.args.get('filter', 'all')
     century_filter = request.args.get('century', 'all')
+    author_filter = request.args.get('author', 'all')
     
     # Build base query
     base_conditions = []
@@ -299,10 +300,17 @@ def index():
     elif century_filter == '21st':
         base_conditions.append('year >= 2000')
     
+    # Apply author filter
+    if author_filter != 'all':
+        base_conditions.append('author = ?')
+    
     # Build final query
     where_clause = ''
+    query_params = []
     if base_conditions:
         where_clause = 'WHERE ' + ' AND '.join(base_conditions)
+        if author_filter != 'all':
+            query_params.append(author_filter)
     
     query = f'''
         SELECT id, title, author, year, s_read, n_read, cover_url FROM books
@@ -310,8 +318,24 @@ def index():
         ORDER BY order_index
     '''
     
-    cursor.execute(query)
+    cursor.execute(query, query_params)
     books = cursor.fetchall()
+    
+    # Get all unique authors with book counts, ordered by surname
+    cursor.execute('''
+        SELECT author, COUNT(*) as book_count 
+        FROM books 
+        GROUP BY author 
+        ORDER BY 
+            CASE WHEN author LIKE '% %' 
+                 THEN TRIM(SUBSTR(author, INSTR(author, ' ') + 1)) 
+                 ELSE author 
+            END,
+            author
+    ''')
+    authors_data = cursor.fetchall()
+    all_authors = [{'name': author, 'count': count, 'display': f"{author} ({count})"} 
+                   for author, count in authors_data]
     
     # Get reading statistics
     cursor.execute('SELECT COUNT(*) FROM books WHERE s_read = 1')
@@ -346,7 +370,13 @@ def index():
         'books_21st': books_21st
     }
     
-    return render_template('index.html', books=books, stats=stats, current_filter=filter_by, current_century=century_filter)
+    return render_template('index.html', 
+                         books=books, 
+                         stats=stats, 
+                         current_filter=filter_by, 
+                         current_century=century_filter,
+                         current_author=author_filter,
+                         all_authors=all_authors)
 
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
@@ -508,6 +538,11 @@ def about():
     """About page with information about the reading challenge"""
     return render_template('about.html')
 
+@app.route('/features')
+def features_complete():
+    """Feature summary page"""
+    return render_template('features_complete.html')
+
 # API Endpoints for React Frontend
 @app.route('/api/books')
 def api_books():
@@ -519,9 +554,12 @@ def api_books():
         # Get filter parameters
         filter_by = request.args.get('filter', 'all')
         century_filter = request.args.get('century', 'all')
+        author_filter = request.args.get('author', 'all')  # Legacy single author support
+        selected_authors = request.args.getlist('authors')  # New multiple authors support
         
         # Build base query
         base_conditions = []
+        query_params = []
         
         # Apply reading status filter
         if filter_by == 'silas':
@@ -541,6 +579,15 @@ def api_books():
         elif century_filter == '21st':
             base_conditions.append('year >= 2000')
         
+        # Apply author filter (support both single and multiple authors)
+        if selected_authors:  # New multiple authors format
+            placeholders = ','.join(['?'] * len(selected_authors))
+            base_conditions.append(f'author IN ({placeholders})')
+            query_params.extend(selected_authors)
+        elif author_filter != 'all':  # Legacy single author format
+            base_conditions.append('author = ?')
+            query_params.append(author_filter)
+        
         # Build final query
         where_clause = ''
         if base_conditions:
@@ -552,7 +599,7 @@ def api_books():
             ORDER BY order_index
         '''
         
-        cursor.execute(query)
+        cursor.execute(query, query_params)
         rows = cursor.fetchall()
         conn.close()
         
@@ -671,6 +718,42 @@ def api_stats():
     except Exception as e:
         print(f"Error in /api/stats: {e}")
         return jsonify({'error': 'Failed to fetch statistics'}), 500
+
+@app.route('/api/authors')
+def api_authors():
+    """API endpoint to get all unique authors with book counts, ordered by surname"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT author, COUNT(*) as book_count 
+            FROM books 
+            GROUP BY author 
+            ORDER BY 
+                CASE WHEN author LIKE '% %' 
+                     THEN TRIM(SUBSTR(author, INSTR(author, ' ') + 1)) 
+                     ELSE author 
+                END,
+                author
+        ''')
+        authors_data = cursor.fetchall()
+        
+        # Format as {name: "Author Name", count: 5, display: "Author Name (5)"}
+        authors = []
+        for author, count in authors_data:
+            authors.append({
+                'name': author,
+                'count': count,
+                'display': f"{author} ({count})"
+            })
+        
+        conn.close()
+        return jsonify(authors)
+        
+    except Exception as e:
+        print(f"Error in /api/authors: {e}")
+        return jsonify({'error': 'Failed to fetch authors'}), 500
 
 # Routes to serve React frontend for production
 @app.route('/static/css/<path:filename>')

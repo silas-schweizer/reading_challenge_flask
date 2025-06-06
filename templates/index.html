@@ -108,18 +108,18 @@
                 {% endif %}
             </button>
             <ul class="dropdown-menu" aria-labelledby="readerFilterDropdown">
-                <li><a class="dropdown-item {{ 'active' if current_filter == 'all' else '' }}" href="{{ url_for('index', filter='all', century=current_century) }}">
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'all' else '' }}" href="{{ url_for('index', filter='all', century=current_century, author=current_author) }}">
                     <i class="fas fa-users"></i> All Readers</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item {{ 'active' if current_filter == 'silas' else '' }}" href="{{ url_for('index', filter='silas', century=current_century) }}">
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'silas' else '' }}" href="{{ url_for('index', filter='silas', century=current_century, author=current_author) }}">
                     <div class="reader-badge reader-s" style="width: 16px; height: 16px; line-height: 16px; font-size: 10px; display: inline-block; margin-right: 8px;">S</div>
                     Silas Only</a></li>
-                <li><a class="dropdown-item {{ 'active' if current_filter == 'nadine' else '' }}" href="{{ url_for('index', filter='nadine', century=current_century) }}">
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'nadine' else '' }}" href="{{ url_for('index', filter='nadine', century=current_century, author=current_author) }}">
                     <div class="reader-badge reader-n" style="width: 16px; height: 16px; line-height: 16px; font-size: 10px; display: inline-block; margin-right: 8px;">N</div>
                     Nadine Only</a></li>
-                <li><a class="dropdown-item {{ 'active' if current_filter == 'both' else '' }}" href="{{ url_for('index', filter='both', century=current_century) }}">
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'both' else '' }}" href="{{ url_for('index', filter='both', century=current_century, author=current_author) }}">
                     <i class="fas fa-heart text-danger"></i> Both Read</a></li>
-                <li><a class="dropdown-item {{ 'active' if current_filter == 'unread' else '' }}" href="{{ url_for('index', filter='unread', century=current_century) }}">
+                <li><a class="dropdown-item {{ 'active' if current_filter == 'unread' else '' }}" href="{{ url_for('index', filter='unread', century=current_century, author=current_author) }}">
                     <i class="fas fa-bookmark text-warning"></i> Unread</a></li>
             </ul>
         </div>
@@ -139,15 +139,45 @@
                 {% endif %}
             </button>
             <ul class="dropdown-menu" aria-labelledby="centuryFilterDropdown">
-                <li><a class="dropdown-item {{ 'active' if current_century == 'all' else '' }}" href="{{ url_for('index', filter=current_filter, century='all') }}">
+                <li><a class="dropdown-item {{ 'active' if current_century == 'all' else '' }}" href="{{ url_for('index', filter=current_filter, century='all', author=current_author) }}">
                     <i class="fas fa-globe"></i> All Centuries</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item {{ 'active' if current_century == '19th' else '' }}" href="{{ url_for('index', filter=current_filter, century='19th') }}">
+                <li><a class="dropdown-item {{ 'active' if current_century == '19th' else '' }}" href="{{ url_for('index', filter=current_filter, century='19th', author=current_author) }}">
                     <i class="fas fa-scroll"></i> 19th Century (1800-1899)</a></li>
-                <li><a class="dropdown-item {{ 'active' if current_century == '20th' else '' }}" href="{{ url_for('index', filter=current_filter, century='20th') }}">
+                <li><a class="dropdown-item {{ 'active' if current_century == '20th' else '' }}" href="{{ url_for('index', filter=current_filter, century='20th', author=current_author) }}">
                     <i class="fas fa-book"></i> 20th Century (1900-1999)</a></li>
-                <li><a class="dropdown-item {{ 'active' if current_century == '21st' else '' }}" href="{{ url_for('index', filter=current_filter, century='21st') }}">
+                <li><a class="dropdown-item {{ 'active' if current_century == '21st' else '' }}" href="{{ url_for('index', filter=current_filter, century='21st', author=current_author) }}">
                     <i class="fas fa-tablet-alt"></i> 21st Century (2000+)</a></li>
+            </ul>
+        </div>
+        
+        <!-- Author Filter with Search -->
+        <div class="dropdown">
+            <button class="btn btn-outline-info dropdown-toggle" type="button" id="authorFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user-pen"></i>
+                {% if current_author == 'all' %}
+                    All Authors
+                {% else %}
+                    {{ current_author }}
+                {% endif %}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="authorFilterDropdown" style="max-width: 300px; max-height: 300px; overflow-y: auto;">
+                <li class="px-3 py-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Search authors..." id="authorSearch" onkeyup="filterAuthors()">
+                    </div>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {{ 'active' if current_author == 'all' else '' }}" href="{{ url_for('index', filter=current_filter, century=current_century, author='all') }}">
+                    <i class="fas fa-users"></i> All Authors</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <div id="authorList">
+                    {% for author in all_authors %}
+                    <li class="author-item"><a class="dropdown-item {{ 'active' if current_author == author.name else '' }}" href="{{ url_for('index', filter=current_filter, century=current_century, author=author.name) }}">
+                        <i class="fas fa-user"></i> {{ author.display }}</a></li>
+                    {% endfor %}
+                </div>
             </ul>
         </div>
         
@@ -175,7 +205,7 @@
 </div>
 
 <!-- Filter Results Info -->
-{% if current_filter != 'all' or current_century != 'all' %}
+{% if current_filter != 'all' or current_century != 'all' or current_author != 'all' %}
 <div class="alert alert-info d-flex align-items-center mb-4 border-0 shadow-sm">
     <i class="fas fa-info-circle me-2 text-info"></i>
     <span>
@@ -194,6 +224,10 @@
         {% if current_century != 'all' %}
             {% if current_filter != 'all' %} and {% endif %}
             from the <span class="badge bg-secondary">{{ current_century }} century</span>
+        {% endif %}
+        {% if current_author != 'all' %}
+            {% if current_filter != 'all' or current_century != 'all' %} and {% endif %}
+            by <span class="badge bg-info text-white">{{ current_author }}</span>
         {% endif %}
     </span>
     <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm ms-auto">
@@ -275,4 +309,29 @@
     <p class="text-muted">Make sure your book_list.csv file is properly formatted.</p>
 </div>
 {% endif %}
+
+<script>
+function filterAuthors() {
+    const searchInput = document.getElementById('authorSearch');
+    const searchTerm = searchInput.value.toLowerCase();
+    const authorItems = document.querySelectorAll('.author-item');
+    
+    authorItems.forEach(item => {
+        const authorLink = item.querySelector('a');
+        const authorText = authorLink.textContent.toLowerCase();
+        
+        if (authorText.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Clear search when dropdown closes
+document.getElementById('authorFilterDropdown').addEventListener('hidden.bs.dropdown', function() {
+    document.getElementById('authorSearch').value = '';
+    filterAuthors(); // Reset the filter
+});
+</script>
 {% endblock %}
