@@ -1,6 +1,15 @@
 # Reading Challenge Flask App
 
-A secure web application to track progress through classic literature reading challenges.
+A secure web application to track progress through classic literature reading challenges, featuring both Flask backend and React frontend.
+
+## 🌟 Features
+
+- **Dual Frontend Options**: Traditional Flask templates + Modern React SPA
+- **RESTful API**: Full API endpoints for React frontend integration
+- **Book Cover Integration**: Automatic cover fetching from Open Library API
+- **Reading Statistics**: Progress tracking and century-based filtering
+- **Secure Authentication**: Uses bcrypt password hashing
+- **Responsive Design**: Bootstrap-based UI that works on all devices
 
 ## 🔐 Security Features
 
@@ -32,12 +41,26 @@ A secure web application to track progress through classic literature reading ch
    # Follow prompts and add output to .env file
    ```
 
-4. **Run the application**:
+4. **Start both servers** (recommended for development):
+   ```bash
+   ./start_dev.sh
+   ```
+   This starts:
+   - Flask backend at http://localhost:5000
+   - React frontend at http://localhost:3000
+
+5. **Or start Flask only** (for production-like testing):
    ```bash
    python app.py
    ```
+   Access at http://localhost:5000 (includes React app at `/app`)
 
-5. **Access**: Open http://localhost:5000
+## 🎯 Access Points
+
+- **Traditional Flask UI**: http://localhost:5000
+- **React SPA**: http://localhost:5000/app (or http://localhost:3000 in dev)
+- **API Endpoints**: http://localhost:5000/api/*
+- **Book Cover Fetching**: http://localhost:5000/test_fetch_covers
 
 ## 🚀 Production Deployment
 

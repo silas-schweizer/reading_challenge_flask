@@ -9,6 +9,14 @@
 5. Select your reading_challenge_flask repository
 6. Railway will auto-detect it's a Python app
 
+## React Frontend Integration
+
+This app now includes a fully integrated React frontend:
+- **Flask Backend**: Serves API endpoints at `/api/*` routes
+- **React Frontend**: Served at `/app` and other frontend routes via Flask
+- **Production Build**: React build files are served directly by Flask
+- **Development**: Use `./start_dev.sh` to run both servers simultaneously
+
 ## Environment Variables to Set in Railway Dashboard
 
 After deployment, go to your project settings and add these environment variables:
@@ -28,6 +36,8 @@ PORT=8000
 Railway should automatically detect the Python app and use:
 - Build Command: `pip install -r requirements.txt`
 - Start Command: `gunicorn wsgi:app`
+
+The React frontend build files are already included and will be served by Flask.
 
 The Procfile is already configured for this.
 

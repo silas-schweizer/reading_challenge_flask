@@ -1,7 +1,7 @@
 import csv
 import sqlite3
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 import os
@@ -13,7 +13,7 @@ from config import config
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=None)
 
 # Configure app based on environment
 config_name = os.environ.get('FLASK_ENV', 'development')
@@ -22,6 +22,9 @@ app.config.from_object(config[config_name])
 # Database path - use absolute path to avoid issues in production
 DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reading_challenge.db')
 CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'book_list.csv')
+
+# React build path
+REACT_BUILD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'build')
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -475,10 +478,275 @@ def fetch_covers():
     
     return redirect(url_for('index'))
 
+@app.route('/test_fetch_covers', methods=['POST', 'GET'])
+def test_fetch_covers():
+    """Test endpoint to fetch missing cover images for books without authentication"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get first 10 books without cover images
+        cursor.execute('SELECT id, title, author FROM books WHERE cover_url IS NULL OR cover_url = "" LIMIT 10')
+        books_without_covers = cursor.fetchall()
+        
+        updated_count = 0
+        for book_id, title, author in books_without_covers:
+            cover_url = get_cover_image(title, author)
+            if cover_url:
+                cursor.execute('UPDATE books SET cover_url = ? WHERE id = ?', (cover_url, book_id))
+                updated_count += 1
+                print(f"Updated cover for: {title} by {author}")
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'updated_count': updated_count,
+            'message': f'Successfully fetched {updated_count} book covers!'
+        })
+            
+    except Exception as e:
+        print(f"Error fetching covers: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/about')
 def about():
     """About page with information about the reading challenge"""
     return render_template('about.html')
+
+# API Endpoints for React Frontend
+@app.route('/api/books')
+def api_books():
+    """API endpoint to get books with filtering for React frontend"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get filter parameters
+        filter_by = request.args.get('filter', 'all')
+        century_filter = request.args.get('century', 'all')
+        
+        # Build base query
+        base_conditions = []
+        
+        # Apply reading status filter
+        if filter_by == 'silas':
+            base_conditions.append('s_read = 1')
+        elif filter_by == 'nadine':
+            base_conditions.append('n_read = 1')
+        elif filter_by == 'both':
+            base_conditions.append('s_read = 1 AND n_read = 1')
+        elif filter_by == 'unread':
+            base_conditions.append('s_read = 0 AND n_read = 0')
+        
+        # Apply century filter
+        if century_filter == '19th':
+            base_conditions.append('year >= 1800 AND year < 1900')
+        elif century_filter == '20th':
+            base_conditions.append('year >= 1900 AND year < 2000')
+        elif century_filter == '21st':
+            base_conditions.append('year >= 2000')
+        
+        # Build final query
+        where_clause = ''
+        if base_conditions:
+            where_clause = 'WHERE ' + ' AND '.join(base_conditions)
+        
+        query = f'''
+            SELECT id, title, author, year, s_read, n_read, cover_url FROM books
+            {where_clause}
+            ORDER BY order_index
+        '''
+        
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Convert to JSON format expected by React
+        books = []
+        for row in rows:
+            books.append({
+                'id': row[0],
+                'title': row[1],
+                'author': row[2],
+                'publication_year': row[3],
+                'silas_read': bool(row[4]),
+                'nadine_read': bool(row[5]),
+                'cover_url': row[6]
+            })
+        
+        return jsonify(books)
+        
+    except Exception as e:
+        print(f"Error in /api/books: {e}")
+        return jsonify({'error': 'Failed to fetch books'}), 500
+
+@app.route('/api/books/<int:book_id>')
+def api_book_detail(book_id):
+    """API endpoint to get single book details for React frontend"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get book details
+        cursor.execute('''
+            SELECT id, title, author, year, s_read, n_read, cover_url FROM books WHERE id = ?
+        ''', (book_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': 'Book not found'}), 404
+        
+        # Get reviews for this book
+        cursor.execute('''
+            SELECT reader, rating, review, date_added FROM reviews 
+            WHERE book_id = ? ORDER BY date_added DESC
+        ''', (book_id,))
+        reviews = cursor.fetchall()
+        
+        conn.close()
+        
+        # Convert to JSON format
+        book = {
+            'id': row[0],
+            'title': row[1],
+            'author': row[2],
+            'publication_year': row[3],
+            'silas_read': bool(row[4]),
+            'nadine_read': bool(row[5]),
+            'cover_url': row[6],
+            'reviews': [
+                {
+                    'reader': review[0],
+                    'rating': review[1],
+                    'review': review[2],
+                    'date_added': review[3]
+                } for review in reviews
+            ]
+        }
+        
+        return jsonify(book)
+        
+    except Exception as e:
+        print(f"Error in /api/books/{book_id}: {e}")
+        return jsonify({'error': 'Failed to fetch book details'}), 500
+
+@app.route('/api/stats')
+def api_stats():
+    """API endpoint to get reading statistics for React frontend"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get reading statistics
+        cursor.execute('SELECT COUNT(*) FROM books WHERE s_read = 1')
+        s_read_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books WHERE n_read = 1')
+        n_read_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books')
+        total_books = cursor.fetchone()[0]
+        
+        # Get century statistics
+        cursor.execute('SELECT COUNT(*) FROM books WHERE year >= 1800 AND year < 1900')
+        books_19th = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books WHERE year >= 1900 AND year < 2000')
+        books_20th = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM books WHERE year >= 2000')
+        books_21st = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        stats = {
+            's_read': s_read_count,
+            'n_read': n_read_count,
+            'total': total_books,
+            's_percentage': round((s_read_count / total_books * 100), 1) if total_books > 0 else 0,
+            'n_percentage': round((n_read_count / total_books * 100), 1) if total_books > 0 else 0,
+            'books_19th': books_19th,
+            'books_20th': books_20th,
+            'books_21st': books_21st
+        }
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        print(f"Error in /api/stats: {e}")
+        return jsonify({'error': 'Failed to fetch statistics'}), 500
+
+# Routes to serve React frontend for production
+@app.route('/static/<path:filename>')
+def serve_react_static(filename):
+    """Serve React static files (CSS, JS, etc.)"""
+    static_path = os.path.join(REACT_BUILD_PATH, 'static')
+    return send_from_directory(static_path, filename)
+
+@app.route('/manifest.json')
+def serve_manifest():
+    """Serve React manifest.json"""
+    return send_from_directory(REACT_BUILD_PATH, 'manifest.json')
+
+@app.route('/asset-manifest.json')
+def serve_asset_manifest():
+    """Serve React asset-manifest.json"""
+    return send_from_directory(REACT_BUILD_PATH, 'asset-manifest.json')
+
+# React frontend routes - serve React app for all non-API routes
+@app.route('/app')
+@app.route('/app/')
+@app.route('/app/<path:path>')
+def serve_react_app(path=''):
+    """Serve React app for /app routes"""
+    try:
+        return send_file(os.path.join(REACT_BUILD_PATH, 'index.html'))
+    except Exception as e:
+        print(f"Error serving React app: {e}")
+        # Fallback to traditional Flask routes if React build not available
+        return redirect(url_for('index'))
+
+# Catch-all route for React Router (only for unmatched routes)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    """
+    Catch-all route that serves React app for frontend routes
+    while preserving existing Flask routes
+    """
+    # Check if this is an API route
+    if path.startswith('api/'):
+        # Let Flask handle API routes normally
+        abort(404)
+    
+    # Check if this is an existing Flask route
+    flask_routes = [
+        'login', 'book', 'mark_read', 'add_review', 
+        'fetch_covers', 'test_fetch_covers', 'about'
+    ]
+    
+    if path in flask_routes or path.startswith(tuple(f'{route}/' for route in flask_routes)):
+        # Let Flask handle these routes normally
+        abort(404)
+    
+    # Serve React app for all other routes
+    try:
+        # Check if React build exists
+        react_index = os.path.join(REACT_BUILD_PATH, 'index.html')
+        if os.path.exists(react_index):
+            return send_file(react_index)
+        else:
+            # Fallback to Flask index if React build not available
+            return redirect(url_for('index'))
+    except Exception as e:
+        print(f"Error in catch_all route: {e}")
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     # Database initialization is now handled at app startup above
