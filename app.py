@@ -673,11 +673,17 @@ def api_stats():
         return jsonify({'error': 'Failed to fetch statistics'}), 500
 
 # Routes to serve React frontend for production
-@app.route('/static/<path:filename>')
-def serve_react_static(filename):
-    """Serve React static files (CSS, JS, etc.)"""
-    static_path = os.path.join(REACT_BUILD_PATH, 'static')
-    return send_from_directory(static_path, filename)
+@app.route('/static/css/<path:filename>')
+def serve_react_css(filename):
+    """Serve React CSS files"""
+    react_static_path = os.path.join(REACT_BUILD_PATH, 'static', 'css')
+    return send_from_directory(react_static_path, filename)
+
+@app.route('/static/js/<path:filename>')
+def serve_react_js(filename):
+    """Serve React JS files"""
+    react_static_path = os.path.join(REACT_BUILD_PATH, 'static', 'js')
+    return send_from_directory(react_static_path, filename)
 
 @app.route('/manifest.json')
 def serve_manifest():
